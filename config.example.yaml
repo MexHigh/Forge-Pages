@@ -1,0 +1,8 @@
+forge_url: https://code.example.com
+pages_url:  https://pages.example.com
+serve_path: /srv
+oidc:
+  id: client-id
+  secret: secret-id
+  auth_url: id.example.com/auth
+  token_url: id.example.com/token

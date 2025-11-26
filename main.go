@@ -1,46 +1,61 @@
 package main
 
 import (
+	"encoding/gob"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
-	"encoding/gob"
 	"time"
 
-	"golang.org/x/oauth2"
+	"io"
+
 	"github.com/alexedwards/scs/v2"
 	"github.com/google/uuid"
-	"io"
+	"golang.org/x/oauth2"
 )
+
+var configPath = flag.String("config", "./config.yaml", "Path to the YAML config file")
 
 var sessionManager *scs.SessionManager
-
-var (
-	oauthConf = &oauth2.Config{
-		ClientID:     "TODO", // TODO config
-		ClientSecret: "TODO", // TODO config
-		RedirectURL:  "http://localhost:8080/callback", // TODO automatic
-		Scopes:       []string{"openid", "profile"},
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  "https://TODO/login/oauth/authorize", // TODO config
-			TokenURL: "https://TODO/login/oauth/access_token", // TODO config
-		},
-	}
-)
 
 func init() {
 	gob.Register(&oauth2.Token{})
 }
 
 func main() {
+	flag.Parse()
+
+	// load config
+	c, err := LoadConfig(*configPath)
+	if err != nil {
+		panic(err) // config is required
+	}
+
+	// set OAuth config
+	oauthConf = &oauth2.Config{
+		ClientID:     c.OIDC.ID,
+		ClientSecret: c.OIDC.Secret,
+		RedirectURL:  c.PagesURL + "/callback",
+		Scopes:       []string{"openid", "profile"},
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  c.OIDC.AuthURL,
+			TokenURL: c.OIDC.TokenURL,
+		},
+	}
+
+	// initialize session manager
 	sessionManager = scs.New()
 	sessionManager.Lifetime = 1 * time.Hour
 
+	// add routes
 	mux := http.NewServeMux()
 
+	// oauth routes
 	mux.HandleFunc("/login", handleLogin)
 	mux.HandleFunc("/callback", handleCallback)
 
+	// pages routes
 	mux.HandleFunc("/page1", func(w http.ResponseWriter, r *http.Request) {
 		// not secured
 		fmt.Fprintf(w, "SUCCESS!")
@@ -54,8 +69,8 @@ func main() {
 		token, ok := tokenIface.(*oauth2.Token)
 		if !ok {
 			// set redirect target, then do redirect to oauth
-			sessionManager.Put(r.Context(), "redirect_to", "http://localhost:8080/page2")
-			http.Redirect(w, r, "http://localhost:8080/login", http.StatusFound)
+			sessionManager.Put(r.Context(), "redirect_to", c.PagesURL+"/page2")
+			http.Redirect(w, r, c.PagesURL+"/login", http.StatusFound)
 			return
 			// TODO redirect to login if nonexistent
 		}
@@ -65,7 +80,7 @@ func main() {
 
 		// check, if user has access to this page
 		// TODO
-		resp, err := client.Get("https://TODO/api/v1/user")
+		resp, err := client.Get(c.ForgeURL + "/api/v1/user")
 		if err != nil {
 			panic(err)
 		}
@@ -73,10 +88,10 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Fprintf(w, string(str))
+		fmt.Fprintf(w, "%s", string(str))
 	})
 
-	log.Println("Listening on http://localhost:8080")
+	log.Println("Started server on port :8080")
 	log.Fatal(http.ListenAndServe(":8080", sessionManager.LoadAndSave(mux)))
 }
 
@@ -84,7 +99,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 	// generate new state and store in session manager
 	newState := uuid.New().String()
 	sessionManager.Put(r.Context(), "state", newState)
-	
+
 	// redirect to provider
 	url := oauthConf.AuthCodeURL(newState, oauth2.AccessTypeOffline)
 	http.Redirect(w, r, url, http.StatusFound)
@@ -115,14 +130,6 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 
 	// store access token in session
 	sessionManager.Put(r.Context(), "access_token", token)
-
-	// print some stuff
-	/*fmt.Fprintf(w, "hello world\n\n")
-	fmt.Fprintf(w, "Access Token: %s\n", token.AccessToken)
-	if token.RefreshToken != "" {
-		fmt.Fprintf(w, "Refresh Token: %s\n", token.RefreshToken)
-	}
-	fmt.Fprintf(w, "Token Type: %s\n", token.TokenType)*/
 
 	// redirect and delete target
 	redirURL := sessionManager.PopString(r.Context(), "redirect_to")
