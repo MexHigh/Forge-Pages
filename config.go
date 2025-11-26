@@ -3,9 +3,12 @@ package main
 import (
 	"errors"
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
+
+var config *Config
 
 type Config struct {
 	ForgeURL  string `yaml:"forge_url"`
@@ -44,17 +47,22 @@ func (c *Config) setDefaults() error {
 	return nil
 }
 
-func LoadConfig(path string) (*Config, error) {
+func LoadConfig(path string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	var c Config
 	if err := yaml.Unmarshal(data, &c); err != nil {
-		return nil, err
+		return err
 	}
 	if err := c.setDefaults(); err != nil {
-		return nil, err
+		return err
 	}
-	return &c, nil
+	config = &c
+	return nil
+}
+
+func (c *Config) GetPagesURLHostOnly() string {
+	return strings.ReplaceAll(strings.ReplaceAll(c.PagesURL, "https://", ""), "http://", "")
 }
