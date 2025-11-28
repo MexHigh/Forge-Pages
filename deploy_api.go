@@ -26,25 +26,39 @@ func handleDeploy(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleNewDeployment(w http.ResponseWriter, r *http.Request) {
-	// check stuff
-	repo, accessToken, protect, err := checkRepoAndKey(r.URL.Query())
+	// get params
+	repo, accessToken, protect, err := getRepoAndKey(r.URL.Query())
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Bad request: " + err.Error()))
 		return
 	}
-	if err := checkWriteAccessToRepo(repo, accessToken); err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte("Unauthorized: user does not have write permissions on this repository"))
-		return
+
+	// check write access
+	writable := false
+	if *skipDeployChecks {
+		writable = true
+	} else {
+		writable, err = ForgeCheckRepoWritableWithAccessToken(repo, accessToken)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Server error: unable to check permissions on the target repository"))
+			return
+		}
+		if !writable {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte("Unauthorized: user does not have write permissions on this repository"))
+			return
+		}
 	}
+
+	// check repo param syntax
 	repoParts := strings.Split(repo, "/")
 	if len(repoParts) != 2 {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Bad request: repo does not have exactly one /"))
 		return
 	}
-
 	forgePage := NewForgePage(repoParts[0], repoParts[1])
 
 	// init+clear directory
@@ -78,18 +92,33 @@ func handleNewDeployment(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleDeleteDeployment(w http.ResponseWriter, r *http.Request) {
-	// check stuff
-	repo, accessToken, _, err := checkRepoAndKey(r.URL.Query())
+	// get params
+	repo, accessToken, _, err := getRepoAndKey(r.URL.Query())
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Bad request: " + err.Error()))
 		return
 	}
-	if err := checkWriteAccessToRepo(repo, accessToken); err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte("Unauthorized: user does not have write permissions on this repository"))
-		return
+
+	// check write access
+	writable := false
+	if *skipDeployChecks {
+		writable = true
+	} else {
+		writable, err = ForgeCheckRepoWritableWithAccessToken(repo, accessToken)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Server error: unable to check permissions on the target repository"))
+			return
+		}
+		if !writable {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte("Unauthorized: user does not have write permissions on this repository"))
+			return
+		}
 	}
+
+	// check repo param syntax
 	repoParts := strings.Split(repo, "/")
 	if len(repoParts) != 2 {
 		w.WriteHeader(http.StatusBadRequest)
@@ -109,7 +138,7 @@ func handleDeleteDeployment(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Success, deleted %s.%s/%s", repoParts[0], config.GetPagesURLHostOnly(), repoParts[1])
 }
 
-func checkRepoAndKey(urlQuery url.Values) (string, string, bool, error) {
+func getRepoAndKey(urlQuery url.Values) (string, string, bool, error) {
 	repo := urlQuery.Get("repo")
 	if repo == "" {
 		return "", "", false, errors.New("missing parameter: repo")
@@ -119,10 +148,6 @@ func checkRepoAndKey(urlQuery url.Values) (string, string, bool, error) {
 		return "", "", false, errors.New("missing parameter: access_token")
 	}
 	return repo, accessToken, urlQuery.Has("protect"), nil
-}
-
-func checkWriteAccessToRepo(repo, accessToken string) error {
-	return nil // TODO
 }
 
 func extractTarGz(r io.Reader, dest string) error {

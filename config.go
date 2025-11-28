@@ -66,3 +66,12 @@ func LoadConfig(path string) error {
 func (c *Config) GetPagesURLHostOnly() string {
 	return strings.ReplaceAll(strings.ReplaceAll(c.PagesURL, "https://", ""), "http://", "")
 }
+
+func (c *Config) GetPagesURLHostOnlyWithoutPort() string {
+	host := c.GetPagesURLHostOnly()
+	if strings.Contains(host, ":") {
+		return strings.Split(host, ":")[0]
+	} else {
+		return host
+	}
+}

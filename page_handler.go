@@ -1,28 +1,35 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"path/filepath"
 	"strings"
+
+	"golang.org/x/oauth2"
 )
 
 func handlePage(w http.ResponseWriter, r *http.Request) {
-	// get host for owner
-	hostParts := strings.SplitN(r.Host, ".", 2)
-
-	if len(hostParts) < 2 {
+	// check host
+	if r.Host == config.GetPagesURLHostOnly() { // request is exactly for http[s]://<page_url>/ --> fallback response
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Hello!"))
+		return
+	}
+	if !strings.HasSuffix(r.Host, "."+config.GetPagesURLHostOnly()) { // request is <owner>.<page_url>
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Bad request: host does not contain repository owner"))
+		w.Write([]byte("Bad request: host does not end in configured pages_url (host part only)"))
 		return
 	}
 
-	if hostParts[1] != config.GetPagesURLHostOnly() {
+	// get and check repo owner
+	repoOwner := strings.TrimSuffix(r.Host, "."+config.GetPagesURLHostOnly())
+	if strings.ContainsAny(repoOwner, ".,/") {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Bad request: host does not end in configured pages_url"))
+		w.Write([]byte("Bad request: repo owner (subdomain) is malformed"))
 		return
 	}
-	repoOwner := hostParts[0]
 
 	// get path for repo
 	if r.URL.Path == "/" || r.URL.Path == "" {
@@ -40,10 +47,40 @@ func handlePage(w http.ResponseWriter, r *http.Request) {
 
 	// assemble page struct
 	page := NewForgePage(repoOwner, repoPath)
+	if !page.Exists() {
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprintf(w, "Not found: no page deployed for repo %s/%s", repoOwner, repoPath)
+		return
+	}
 
 	// check if oauth2 check is required
 	if page.HasProtectionFlag() {
-		// TODO Implement oauth
+		// get access token or redirect to login if not found
+		tokenIface := sessionManager.Get(r.Context(), "access_token")
+		token, ok := tokenIface.(oauth2.Token)
+		if !ok {
+			// set redirect target, then do redirect to oauth
+			fullURL := getFullURL(r)
+			sessionManager.Put(r.Context(), "redirect_to", fullURL)
+			http.Redirect(w, r, config.PagesURL+"/login", http.StatusFound)
+			return
+		}
+
+		// generate client from access token and check permissions
+		client := oauthConf.Client(r.Context(), &token)
+
+		readable, err := ForgeCheckRepoReadableWithClient(fmt.Sprintf("%s/%s", repoOwner, repoPath), client)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Server error: unable to check permissions on the target repository"))
+			return
+		}
+		if !readable {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte("Unauthorized: no read access for you :("))
+			return
+		}
+		// if we are here, OAuth2 was successfull and user has sufficient permissions. Continue serving assets.
 	}
 
 	// deliver static content
@@ -54,4 +91,12 @@ func handlePage(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Serving asset: " + assetsPathRequest)
 	http.ServeFile(w, r, assetsPathRequest)
+}
+
+func getFullURL(r *http.Request) string {
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	return fmt.Sprintf("%s://%s%s", scheme, r.Host, r.URL.String())
 }

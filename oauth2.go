@@ -9,10 +9,6 @@ import (
 
 var oauthConf *oauth2.Config
 
-func DoOAuth2() {
-
-}
-
 func handleLogin(w http.ResponseWriter, r *http.Request) {
 	// generate new state and store in session manager
 	newState := uuid.New().String()
@@ -47,7 +43,7 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// store access token in session
-	sessionManager.Put(r.Context(), "access_token", token)
+	sessionManager.Put(r.Context(), "access_token", *token)
 
 	// redirect and delete target
 	redirURL := sessionManager.PopString(r.Context(), "redirect_to")
