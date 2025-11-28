@@ -1,6 +1,6 @@
 forge_url: https://code.example.com
-pages_url:  https://pages.example.com
-serve_path: /srv
+pages_url:  https://pages.example.com # for testing: http://forge-pages.test:8080
+serve_path: /srv # for testing: ./_files
 oidc:
   id: client-id
   secret: secret-id

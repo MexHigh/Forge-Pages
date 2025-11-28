@@ -115,7 +115,7 @@ func checkRepoAndKey(urlQuery url.Values) (string, string, bool, error) {
 		return "", "", false, errors.New("missing parameter: repo")
 	}
 	accessToken := urlQuery.Get("access_token")
-	if accessToken == "" {
+	if accessToken == "" && !*skipDeployChecks {
 		return "", "", false, errors.New("missing parameter: access_token")
 	}
 	return repo, accessToken, urlQuery.Has("protect"), nil

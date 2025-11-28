@@ -12,7 +12,10 @@ import (
 )
 
 // flags
-var configPath = flag.String("config", "./config.yaml", "Path to the YAML config file")
+var (
+	configPath       = flag.String("config", "./config.yaml", "Path to the YAML config file")
+	skipDeployChecks = flag.Bool("skip_deploy_checks", false, "If set, the deploy route does not verify the repository or the access_token parameters and always deploys")
+)
 
 // public vars
 var sessionManager *scs.SessionManager
