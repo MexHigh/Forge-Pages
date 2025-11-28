@@ -56,7 +56,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	// oauth routes
-	/*mux.Handle("/login", withAuth(handleLogin))
+	mux.Handle("/login", withAuth(handleLogin))
 	mux.Handle("/callback", withAuth(handleCallback))
 	// api routes
 	mux.HandleFunc("/deploy", handleDeploy) // no need for a session
@@ -64,17 +64,7 @@ func main() {
 	mux.Handle("/", withAuth(handlePage))
 
 	log.Println("Pages server started on " + pagesBind)
-	log.Fatal(http.ListenAndServe(pagesBind, mux))*/
-
-	mux.HandleFunc("/login", handleLogin)
-	mux.HandleFunc("/callback", handleCallback)
-	// api routes
-	mux.HandleFunc("/deploy", handleDeploy) // no need for a session
-	// pages route
-	mux.HandleFunc("/", handlePage)
-
-	log.Println("Pages server started on " + pagesBind)
-	log.Fatal(http.ListenAndServe(pagesBind, sessionManager.LoadAndSave(mux)))
+	log.Fatal(http.ListenAndServe(pagesBind, mux))
 }
 
 func withAuth(f func(w http.ResponseWriter, r *http.Request)) http.Handler {
