@@ -11,9 +11,14 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// flags
 var configPath = flag.String("config", "./config.yaml", "Path to the YAML config file")
 
+// public vars
 var sessionManager *scs.SessionManager
+
+// consts
+const pagesBind = ":8080"
 
 func init() {
 	gob.Register(&oauth2.Token{})
@@ -23,7 +28,6 @@ func main() {
 	flag.Parse()
 
 	// load config
-
 	if err := LoadConfig(*configPath); err != nil {
 		panic(err) // config is required
 	}
@@ -48,10 +52,14 @@ func main() {
 	mux := http.NewServeMux()
 
 	// oauth routes
-	mux.HandleFunc("/login", handleLogin)
-	mux.HandleFunc("/callback", handleCallback)
+	mux.Handle("/login", withAuth(handleLogin))
+	mux.Handle("/callback", withAuth(handleCallback))
 
-	mux.HandleFunc("/", handlePage)
+	// api routes
+	mux.HandleFunc("/deploy", handleDeploy) // no need for a session
+
+	// pages route
+	mux.Handle("/", withAuth(handlePage))
 
 	// pages routes
 	/*mux.HandleFunc("/page1", func(w http.ResponseWriter, r *http.Request) {
@@ -88,6 +96,10 @@ func main() {
 		fmt.Fprintf(w, "%s", string(str))
 	})*/
 
-	log.Println("Started server on port :8080")
-	log.Fatal(http.ListenAndServe(":8080", sessionManager.LoadAndSave(mux)))
+	log.Println("Pages server started on " + pagesBind)
+	log.Fatal(http.ListenAndServe(pagesBind, mux))
+}
+
+func withAuth(f func(w http.ResponseWriter, r *http.Request)) http.Handler {
+	return sessionManager.LoadAndSave(http.HandlerFunc(f))
 }
