@@ -2,7 +2,7 @@
 
 Forge Pages is a GitHub/GitLab Pages pendant for Forge Servers (Forgejo/Gitea) to deploy static webpages.
 
-Unlike other pages services such as XY or ZA, static assets do not have to be committed into a separate branch or registry, but can be built and deployed directly from within a workflow. There is also a [suitable action that simplifies the deployment](https://code.leon.wtf/leon/Forge-Pages-Action).
+Unlike other pages services such as the [Codeberg Page Server](https://codeberg.org/Codeberg/pages-server/), static assets do not have to be committed into a separate branch or registry, but can be built and deployed directly from within a workflow. There is also a [suitable action that simplifies the deployment](https://code.leon.wtf/leon/Forge-Pages-Action).
 
 Deployed pages can be secured by enforcing the user permissions configured in the repository, the page was deployed from. This makes this tool a great fit for deploying private pages as well!
 

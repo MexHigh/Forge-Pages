@@ -12,24 +12,34 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-      - name: Docker build
-        run: docker build -t ${{ env.IMAGE_SLUG }}:${{ forgejo.ref_name }} .
+      - name: Lowercase Docker image name
+        id: image_string
+        uses: https://github.com/ASzc/change-string-case-action@v6
+        with:
+          string: ${{ env.IMAGE_SLUG }}
       - name: Docker login
         uses: https://github.com/docker/login-action@v3
         with:
           registry: ${{ vars.FORGEJO_HOST }}
           username: ${{ forgejo.actor }}
           password: ${{ secrets.REGISTRY_TOKEN }}
+      - name: Docker build versioned
+        run: docker build -t ${{ steps.image_string.outputs.lowercase }}:${{ forgejo.ref_name }} .
       - name: Docker push versioned
-        run: docker push ${{ env.IMAGE_SLUG }}:${{ forgejo.ref_name }}
+        run: docker push ${{ steps.image_string.outputs.lowercase }}:${{ forgejo.ref_name }}
       - name: Docker tag latest
-        run: docker tag ${{ env.IMAGE_SLUG }}:${{ forgejo.ref_name }} ${{ env.IMAGE_SLUG }}:latest
+        run: docker tag ${{ steps.image_string.outputs.lowercase }}:${{ forgejo.ref_name }} ${{ steps.image_string.outputs.lowercase }}:latest
       - name: Docker push latest
-        run: docker push ${{ env.IMAGE_SLUG }}:latest
+        run: docker push ${{ steps.image_string.outputs.lowercase }}:latest
 
   create-release:
     runs-on: debian-node-lts
     steps:
+      - name: Lowercase Docker image name
+        id: image_string
+        uses: https://github.com/ASzc/change-string-case-action@v6
+        with:
+          string: ${{ env.IMAGE_SLUG }}
       - name: Publish release
         uses: actions/forgejo-release@v2.5.0
         with:
@@ -39,5 +49,5 @@ jobs:
             Release for **Forge Pages ${{ forgejo.ref_name }}**.
             
             New docker images:
-            - `${{ env.IMAGE_SLUG }}:${{ forgejo.ref_name }}` _(new tag)_
-            - `${{ env.IMAGE_SLUG }}:latest` _(updated to refer to this version)_
+            - `${{ steps.image_string.outputs.lowercase }}:${{ forgejo.ref_name }}` _(new tag)_
+            - `${{ steps.image_string.outputs.lowercase }}:latest` _(updated to refer to this version)_
