@@ -1,0 +1,29 @@
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - Dockerfile
+      - '*.go'
+      - '*.mod'
+      - '*.sum'
+
+env:
+  IMAGE_SLUG: ${{ vars.FORGEJO_HOST }}/${{ forgejo.repository }}
+
+jobs:
+  docker-build-and-push:
+    runs-on: docker
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Docker build
+        run: docker build -t ${{ env.IMAGE_SLUG }}:${{ forgejo.sha }} .
+      - name: Docker login
+        uses: https://github.com/docker/login-action@v3
+        with:
+          registry: ${{ vars.FORGEJO_HOST }}
+          username: ${{ forgejo.actor }}
+          password: ${{ secrets.REGISTRY_TOKEN }}
+      - name: Docker push SHA-tagged
+        run: docker push ${{ env.IMAGE_SLUG }}:${{ forgejo.sha }}

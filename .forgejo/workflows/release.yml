@@ -1,0 +1,43 @@
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  IMAGE_SLUG: ${{ vars.FORGEJO_HOST }}/${{ forgejo.repository }}
+
+jobs:
+  docker-build-and-push:
+    runs-on: docker
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Docker build
+        run: docker build -t ${{ env.IMAGE_SLUG }}:${{ forgejo.ref_name }} .
+      - name: Docker login
+        uses: https://github.com/docker/login-action@v3
+        with:
+          registry: ${{ vars.FORGEJO_HOST }}
+          username: ${{ forgejo.actor }}
+          password: ${{ secrets.REGISTRY_TOKEN }}
+      - name: Docker push versioned
+        run: docker push ${{ env.IMAGE_SLUG }}:${{ forgejo.ref_name }}
+      - name: Docker tag latest
+        run: docker tag ${{ env.IMAGE_SLUG }}:${{ forgejo.ref_name }} ${{ env.IMAGE_SLUG }}:latest
+      - name: Docker push latest
+        run: docker push ${{ env.IMAGE_SLUG }}:latest
+
+  create-release:
+    runs-on: debian-node-lts
+    steps:
+      - name: Publish release
+        uses: actions/forgejo-release@v2.5.0
+        with:
+          direction: upload
+          token: ${{ forgejo.token }}
+          release-notes: |
+            Release for **Forge Pages ${{ forgejo.ref_name }}**.
+            
+            New docker images:
+            - `${{ env.IMAGE_SLUG }}:${{ forgejo.ref_name }}` _(new tag)_
+            - `${{ env.IMAGE_SLUG }}:latest` _(updated to refer to this version)_
