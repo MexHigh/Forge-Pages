@@ -75,3 +75,7 @@ func (c *Config) GetPagesURLHostOnlyWithoutPort() string {
 		return host
 	}
 }
+
+func (c *Config) GetPagesURLWithAdditionalSubdomain(subdomain string) string {
+	return InsertStringAfterSubstring(c.PagesURL, `^(https?://)`, subdomain+".")
+}

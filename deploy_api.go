@@ -91,7 +91,7 @@ func handleNewDeployment(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(err.Error(), "tar entry too large") || strings.HasPrefix(err.Error(), "upacked more than") {
 			w.WriteHeader(http.StatusRequestEntityTooLarge)
 		} else {
-		w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusInternalServerError)
 		}
 		w.Write([]byte("Server error: could not extract tar.gz"))
 		return
@@ -103,9 +103,9 @@ func handleNewDeployment(w http.ResponseWriter, r *http.Request) {
 		forgePage.AddProtectionFlag()
 	}
 
-	log.Printf("Success, deployed to %s.%s/%s", repoParts[0], config.GetPagesURLHostOnly(), repoParts[1])
+	log.Printf("Success, deployed to %s/%s", config.GetPagesURLWithAdditionalSubdomain(repoParts[0]), repoParts[1])
 	w.WriteHeader(http.StatusCreated)
-	fmt.Fprintf(w, "Success, deployed to %s.%s/%s", repoParts[0], config.GetPagesURLHostOnly(), repoParts[1])
+	fmt.Fprintf(w, "Success, deployed to %s/%s", config.GetPagesURLWithAdditionalSubdomain(repoParts[0]), repoParts[1])
 }
 
 func handleDeleteDeployment(w http.ResponseWriter, r *http.Request) {
@@ -156,9 +156,9 @@ func handleDeleteDeployment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Success, deleted %s.%s/%s", repoParts[0], config.GetPagesURLHostOnly(), repoParts[1])
+	log.Printf("Success, deleted %s/%s", config.GetPagesURLWithAdditionalSubdomain(repoParts[0]), repoParts[1])
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Success, deleted %s.%s/%s", repoParts[0], config.GetPagesURLHostOnly(), repoParts[1])
+	fmt.Fprintf(w, "Success, deleted %s/%s", config.GetPagesURLWithAdditionalSubdomain(repoParts[0]), repoParts[1])
 }
 
 func getRepoAndKey(urlQuery url.Values) (string, string, bool, error) {
