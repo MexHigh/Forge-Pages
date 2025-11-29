@@ -48,7 +48,10 @@ func (fp *ForgePage) Purge() error {
 	return os.RemoveAll(fp.BasePath)
 }
 
-const maxTarEntrySizeBytes = 5_242_880 // 5 MB
+const (
+	maxTarEntrySizeBytes = 5_242_880 // 5 MB
+	maxNumOfTarEntries   = 2_500
+)
 
 func extractTarGz(r io.Reader, dest string) error {
 	// gzip reader
@@ -61,6 +64,7 @@ func extractTarGz(r io.Reader, dest string) error {
 	// tar reader
 	tr := tar.NewReader(gz)
 
+	totalFiles := 0
 	for {
 		header, err := tr.Next()
 		if err == io.EOF {
@@ -68,6 +72,12 @@ func extractTarGz(r io.Reader, dest string) error {
 		}
 		if err != nil {
 			return err
+		}
+
+		totalFiles++
+		if totalFiles > maxNumOfTarEntries {
+			log.Printf("Unpacked more than %d files, stopping deployment", maxNumOfTarEntries)
+			return fmt.Errorf("upacked more than %d files, stopping deployment", maxNumOfTarEntries)
 		}
 
 		// check single entry size (to prevent zip bombs)
@@ -90,7 +100,7 @@ func extractTarGz(r io.Reader, dest string) error {
 				return err
 			}
 		case tar.TypeReg:
-			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+			if err := os.MkdirAll(filepath.Dir(target), 0750); err != nil {
 				return err
 			}
 			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR|os.O_TRUNC, os.FileMode(header.Mode))
@@ -103,6 +113,7 @@ func extractTarGz(r io.Reader, dest string) error {
 			}
 			f.Close()
 		}
+		// silently discards all other types (like symlinks)
 	}
 
 	return nil

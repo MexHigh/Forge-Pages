@@ -87,8 +87,13 @@ func handleNewDeployment(w http.ResponseWriter, r *http.Request) {
 		if err := forgePage.Purge(); err != nil {
 			log.Printf("Error deleting deployment %s", err.Error())
 		}
+		// filter some errors to send accurate codes
+		if strings.HasPrefix(err.Error(), "tar entry too large") || strings.HasPrefix(err.Error(), "upacked more than") {
+			w.WriteHeader(http.StatusRequestEntityTooLarge)
+		} else {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Server error: could not extract tar.gz. Detailed error: " + err.Error()))
+		}
+		w.Write([]byte("Server error: could not extract tar.gz"))
 		return
 	}
 
