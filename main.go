@@ -21,7 +21,10 @@ var (
 var sessionManager *scs.SessionManager
 
 // consts
-const pagesBind = ":8080"
+const (
+	pagesBind          = ":8080"
+	maxDeploySizeBytes = 20971520 // 20 MB
+)
 
 func init() {
 	gob.Register(oauth2.Token{})
@@ -30,7 +33,7 @@ func init() {
 func main() {
 	flag.Parse()
 
-	// load config
+	log.Printf("Loading config from %s and running init steps", *configPath)
 	if err := LoadConfig(*configPath); err != nil {
 		panic(err) // config is required
 	}
@@ -59,11 +62,14 @@ func main() {
 	mux.Handle("/login", withAuth(handleLogin))
 	mux.Handle("/callback", withAuth(handleCallback))
 	// api routes
-	mux.HandleFunc("/deploy", handleDeploy) // no need for a session
+	mux.Handle("/deploy", http.MaxBytesHandler( // does not need a session
+		http.HandlerFunc(handleDeploy),
+		maxDeploySizeBytes,
+	))
 	// pages route
 	mux.Handle("/", withAuth(handlePage))
 
-	log.Println("Pages server started on " + pagesBind)
+	log.Printf("Pages server started on %s, waiting for requests", pagesBind)
 	log.Fatal(http.ListenAndServe(pagesBind, mux))
 }
 
