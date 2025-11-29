@@ -22,7 +22,7 @@ var sessionManager *scs.SessionManager
 
 // consts
 const (
-	pagesBind          = ":8080"
+	pagesBind          = "0.0.0.0:8080"
 	maxDeploySizeBytes = 20971520 // 20 MB
 )
 
