@@ -39,7 +39,7 @@ func ForgeGetRepoWithClient(repo string, client *http.Client) (*GetRepoEndpointR
 }
 
 func ForgeGetRepoWithAccessToken(repo, accessToken string) (*GetRepoEndpointResponse, error) {
-	req, err := http.NewRequest("GET", config.ForgeURL+"/api/v1/repos/", nil)
+	req, err := http.NewRequest("GET", config.ForgeURL+"/api/v1/repos/"+repo, nil)
 	if err != nil {
 		return nil, err
 	}
