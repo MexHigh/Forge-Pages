@@ -13,7 +13,7 @@ import (
 
 // flags
 var (
-	configPath       = flag.String("config", "./config.yaml", "Path to the YAML config file")
+	configPath       = flag.String("config", "./config.yml", "Path to the YAML config file")
 	skipDeployChecks = flag.Bool("skip_deploy_checks", false, "If set, the deploy route does not verify the repository or the access_token parameters and always deploys")
 )
 
@@ -37,13 +37,13 @@ func main() {
 
 	// set OAuth config
 	oauthConf = &oauth2.Config{
-		ClientID:     config.OIDC.ID,
-		ClientSecret: config.OIDC.Secret,
+		ClientID:     config.OAuth.ID,
+		ClientSecret: config.OAuth.Secret,
 		RedirectURL:  config.PagesURL + "/callback",
 		Scopes:       []string{"openid", "profile"},
 		Endpoint: oauth2.Endpoint{
-			AuthURL:  config.OIDC.AuthURL,
-			TokenURL: config.OIDC.TokenURL,
+			AuthURL:  config.OAuth.AuthURL,
+			TokenURL: config.OAuth.TokenURL,
 		},
 	}
 

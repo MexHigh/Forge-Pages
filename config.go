@@ -14,12 +14,12 @@ type Config struct {
 	ForgeURL  string `yaml:"forge_url"`
 	PagesURL  string `yaml:"pages_url"`
 	ServePath string `yaml:"serve_path"`
-	OIDC      struct {
+	OAuth     struct {
 		ID       string
 		Secret   string
 		AuthURL  string `yaml:"auth_url"`
 		TokenURL string `yaml:"token_url"`
-	} `yaml:"oidc"`
+	} `yaml:"oauth"`
 }
 
 func (c *Config) setDefaults() error {
@@ -32,16 +32,16 @@ func (c *Config) setDefaults() error {
 	if c.ServePath == "" {
 		c.ServePath = "/srv"
 	}
-	if c.OIDC.ID == "" {
+	if c.OAuth.ID == "" {
 		return errors.New("oidc.id is required")
 	}
-	if c.OIDC.Secret == "" {
+	if c.OAuth.Secret == "" {
 		return errors.New("oidc.secret is required")
 	}
-	if c.OIDC.AuthURL == "" {
+	if c.OAuth.AuthURL == "" {
 		return errors.New("oidc.auth_url is required")
 	}
-	if c.OIDC.TokenURL == "" {
+	if c.OAuth.TokenURL == "" {
 		return errors.New("oidc.token_url is required")
 	}
 	return nil
