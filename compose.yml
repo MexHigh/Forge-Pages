@@ -1,0 +1,11 @@
+services:
+  forge-pages:
+    image: code.leon.wtf/leon/forge-pages:latest
+    container_name: forge_pages
+    ports:
+      # adjust local port if needed
+      - 8080:8080
+    volumes:
+      # adjust local path if needed
+      - ./config.yml:/config.yml
+      - ./srv:/srv
