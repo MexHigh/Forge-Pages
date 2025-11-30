@@ -66,14 +66,14 @@ func handleNewDeployment(w http.ResponseWriter, r *http.Request) {
 	forgePage := NewForgePage(repoParts[0], repoParts[1])
 
 	// init+clear directory
-	log.Printf("Re-creating page path %s", forgePage.BasePath)
-	if err := os.RemoveAll(forgePage.BasePath); err != nil {
+	log.Printf("Re-creating page path %s", forgePage.StoragePath)
+	if err := os.RemoveAll(forgePage.StoragePath); err != nil {
 		log.Printf("Error removing directory: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Server error: could not delete old page directory"))
 		return
 	}
-	if err := os.MkdirAll(forgePage.BasePath, 0750); err != nil {
+	if err := os.MkdirAll(forgePage.StoragePath, 0750); err != nil {
 		log.Printf("Error while creating directory: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Server error: could not create page directory"))
@@ -82,7 +82,7 @@ func handleNewDeployment(w http.ResponseWriter, r *http.Request) {
 
 	// read and extract tar.gz file
 	log.Println("Reading body")
-	if err := extractTarGz(r.Body, forgePage.BasePath); err != nil {
+	if err := extractTarGz(r.Body, forgePage.StoragePath); err != nil {
 		log.Printf("Error while reading .tar.gz body: %s; deleting deployment", err.Error())
 		if err := forgePage.Purge(); err != nil {
 			log.Printf("Error deleting deployment %s", err.Error())
@@ -103,9 +103,9 @@ func handleNewDeployment(w http.ResponseWriter, r *http.Request) {
 		forgePage.AddProtectionFlag()
 	}
 
-	log.Printf("Success, deployed to %s/%s", config.GetPagesURLWithAdditionalSubdomain(repoParts[0]), repoParts[1])
+	log.Printf("Success, deployed to %s/%s", config.GetPagesURLWithAdditionalSubdomain(forgePage.Owner), forgePage.Repo)
 	w.WriteHeader(http.StatusCreated)
-	fmt.Fprintf(w, "Success, deployed to %s/%s", config.GetPagesURLWithAdditionalSubdomain(repoParts[0]), repoParts[1])
+	fmt.Fprintf(w, "Success, deployed to %s/%s", config.GetPagesURLWithAdditionalSubdomain(forgePage.Owner), forgePage.Repo)
 }
 
 func handleDeleteDeployment(w http.ResponseWriter, r *http.Request) {
@@ -148,7 +148,7 @@ func handleDeleteDeployment(w http.ResponseWriter, r *http.Request) {
 
 	// do the delete
 	forgePage := NewForgePage(repoParts[0], repoParts[1])
-	log.Printf("Deleting page path %s", forgePage.BasePath)
+	log.Printf("Deleting page path %s", forgePage.StoragePath)
 	if err := forgePage.Purge(); err != nil {
 		log.Printf("Error deleting deployment %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
@@ -156,9 +156,9 @@ func handleDeleteDeployment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Success, deleted %s/%s", config.GetPagesURLWithAdditionalSubdomain(repoParts[0]), repoParts[1])
+	log.Printf("Success, deleted %s/%s", config.GetPagesURLWithAdditionalSubdomain(forgePage.Owner), forgePage.Repo)
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Success, deleted %s/%s", config.GetPagesURLWithAdditionalSubdomain(repoParts[0]), repoParts[1])
+	fmt.Fprintf(w, "Success, deleted %s/%s", config.GetPagesURLWithAdditionalSubdomain(forgePage.Owner), forgePage.Repo)
 }
 
 func getRepoAndKey(urlQuery url.Values) (string, string, bool, error) {

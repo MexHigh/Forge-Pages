@@ -18,7 +18,7 @@ Deployed pages can be secured by enforcing the user permissions configured in th
 ## How does it work?
 
 The Forge Pages Server is a Go application that provides a `POST /deploy` endpoint. Pages must be TAR'ed and GZIP'ed and posted to this endpoint, together with the following query parameters:
-- `repo`: Repository slug. Used to construct the URL where the page will be deployed to.
+- `repo`: Repository slug. Used to construct the URL where the page will be deployed to. **To prevent confusion, the repo name is always lowercased!**
 - `access_token`: The workflow token (e.g. `${{ forgejo.token }}`) to verify permissions to deploy a page to the target specified by `repo`.
     - This can also be a PAT, as long as it has the appropriate permissions
 - `protect`: If existent, the page will be protected using the Forgejo/Gitea OAuth2 provider. Only users with at least `read`/`pull` permissions can view this page.

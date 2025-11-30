@@ -15,17 +15,28 @@ import (
 const protectionFlag = ".protect"
 
 type ForgePage struct {
-	BasePath string
+	StoragePath string
+	Owner       string
+	Repo        string
 }
 
 func NewForgePage(owner, repo string) *ForgePage {
+	lowerOwner := strings.ToLower(owner)
+	lowerRepo := strings.ToLower(repo)
+
 	return &ForgePage{
-		BasePath: filepath.Join(config.ServePath, owner, filepath.Clean(repo)),
+		StoragePath: filepath.Join(
+			config.ServePath,
+			lowerOwner,
+			lowerRepo,
+		),
+		Owner: lowerOwner,
+		Repo:  lowerRepo,
 	}
 }
 
 func (fp *ForgePage) Exists() bool {
-	entries, err := os.ReadDir(fp.BasePath)
+	entries, err := os.ReadDir(fp.StoragePath)
 	if err != nil {
 		return false
 	}
@@ -36,16 +47,16 @@ func (fp *ForgePage) Exists() bool {
 }
 
 func (fp *ForgePage) AddProtectionFlag() {
-	os.Create(path.Join(fp.BasePath, protectionFlag))
+	os.Create(path.Join(fp.StoragePath, protectionFlag))
 }
 
 func (fp *ForgePage) HasProtectionFlag() bool {
-	_, err := os.Stat(path.Join(fp.BasePath, protectionFlag))
+	_, err := os.Stat(path.Join(fp.StoragePath, protectionFlag))
 	return err == nil
 }
 
 func (fp *ForgePage) Purge() error {
-	return os.RemoveAll(fp.BasePath)
+	return os.RemoveAll(fp.StoragePath)
 }
 
 const (

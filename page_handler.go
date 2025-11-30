@@ -52,7 +52,7 @@ func handlePage(w http.ResponseWriter, r *http.Request) {
 	// assemble page struct
 	page := NewForgePage(repoOwner, repoPath)
 	if !page.Exists() {
-		log.Printf("Requested path %s empty or does not exist (Host: %s, path: %s)", page.BasePath, r.Host, r.URL)
+		log.Printf("Requested path %s empty or does not exist (Host: %s, path: %s)", page.StoragePath, r.Host, r.URL)
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(w, "Not found: no page deployed for repo %s/%s", repoOwner, repoPath)
 		return
@@ -80,7 +80,7 @@ func handlePage(w http.ResponseWriter, r *http.Request) {
 		client := oauthConf.Client(r.Context(), &token)
 
 		log.Println("Checking permissions via API")
-		readable, err := ForgeCheckRepoReadableWithClient(fmt.Sprintf("%s/%s", repoOwner, repoPath), client)
+		readable, err := ForgeCheckRepoReadableWithClient(fmt.Sprintf("%s/%s", repoOwner, repoPath), client) // we should not use page.[Owner|Repo] here, since those are always lowercase
 		if err != nil {
 			log.Printf("Error while checking permissions: %s", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
@@ -98,9 +98,9 @@ func handlePage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// deliver static content
-	assetsPathRequest := page.BasePath
+	assetsPathRequest := page.StoragePath
 	if len(pathParts) > 2 {
-		assetsPathRequest = filepath.Join(assetsPathRequest, filepath.Clean(pathParts[2]))
+		assetsPathRequest = filepath.Join(assetsPathRequest, filepath.Clean(pathParts[2])) // pathParts[2] is the remainder of the URL
 	}
 
 	log.Println("Serving asset " + assetsPathRequest)
