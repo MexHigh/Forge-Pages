@@ -29,6 +29,10 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 
 	// get and remove state from session
 	sessState := sessionManager.PopString(r.Context(), "state")
+	if sessState == "" {
+		http.Error(w, "oauth state not found in session", http.StatusBadGateway)
+		return
+	}
 
 	// check provided state with session state
 	reqState := r.URL.Query().Get("state")
