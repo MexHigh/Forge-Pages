@@ -15,6 +15,12 @@ func handleDeploy(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodPost:
+		if r.Host != config.GetPagesURLHostOnly() {
+			log.Printf("Hit deploy route on non-root subdomain: %s", r.Host)
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Bad request: use deploy route on configured root domain"))
+			return
+		}
 		handleNewDeployment(w, r)
 	case http.MethodDelete:
 		handleDeleteDeployment(w, r)

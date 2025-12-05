@@ -1,5 +1,5 @@
 # Add this to your /etc/hosts for local testing.
 # Then call `go run --bind 127.0.0.2:8080 [--config ...]`
 
-127.0.0.2 forge-pages.test
-127.0.0.2 testuser.forge-pages.test
+127.0.0.1 forge-pages.test
+127.0.0.1 testuser.forge-pages.test
