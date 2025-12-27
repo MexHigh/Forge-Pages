@@ -35,22 +35,30 @@ func handlePage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// get path for repo
-	if r.URL.Path == "/" || r.URL.Path == "" {
+	urlHelper := NewURLPathHelper(r.URL.Path)
+	if urlHelper.NumOfElements == 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Bad request: pages request sent to root folder"))
 		return
 	}
-	pathParts := strings.SplitN(r.URL.Path, "/", 3)
-	if len(pathParts) < 2 {
-		log.Printf("This should not happen: pages request path has not enough segments (Host: %s, path: %s)", r.Host, r.URL)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Bad request: pages request path has not enough segments"))
-		return
+	repoPath := urlHelper.GetElement(0)
+
+	// check if seperate base path exists
+	addBasePath := ""
+	if urlHelper.HasElement(1) {
+		log.Println("Possible additional base path found, checking if it exists")
+		tempPage := NewForgePage(repoOwner, repoPath, urlHelper.GetElement(1))
+		if tempPage.Exists() {
+			// this means that the addBasePath does not exist, not that the page does not exist in __ROOT__
+			log.Println("Additional base path exists, requesting")
+			addBasePath = urlHelper.GetElement(1)
+		} else {
+			log.Println("Not an additional base path, falling back to __ROOT__")
+		}
 	}
-	repoPath := pathParts[1] // [0] ist empty string
 
 	// assemble page struct
-	page := NewForgePage(repoOwner, repoPath)
+	page := NewForgePage(repoOwner, repoPath, addBasePath)
 	if !page.Exists() {
 		log.Printf("Requested path %s empty or does not exist (Host: %s, path: %s)", page.StoragePath, r.Host, r.URL)
 		w.WriteHeader(http.StatusNotFound)
@@ -99,8 +107,10 @@ func handlePage(w http.ResponseWriter, r *http.Request) {
 
 	// deliver static content
 	assetsPathRequest := page.StoragePath
-	if len(pathParts) > 2 {
-		assetsPathRequest = filepath.Join(assetsPathRequest, filepath.Clean(pathParts[2])) // pathParts[2] is the remainder of the URL
+	if addBasePath != "" { // "if we have an existing addBasePath"
+		assetsPathRequest = filepath.Join(assetsPathRequest, filepath.Clean(urlHelper.GetElementsStartingFromElement(2)))
+	} else {
+		assetsPathRequest = filepath.Join(assetsPathRequest, filepath.Clean(urlHelper.GetElementsStartingFromElement(1)))
 	}
 
 	log.Println("Serving asset " + assetsPathRequest)

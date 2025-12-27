@@ -33,7 +33,7 @@ func handleDeploy(w http.ResponseWriter, r *http.Request) {
 
 func handleNewDeployment(w http.ResponseWriter, r *http.Request) {
 	// get params
-	repo, accessToken, protect, err := getRepoAndKey(r.URL.Query())
+	repo, accessToken, addBasePath, protect, err := getParams(r.URL.Query())
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Bad request: " + err.Error()))
@@ -69,7 +69,7 @@ func handleNewDeployment(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Bad request: repo does not have exactly one /"))
 		return
 	}
-	forgePage := NewForgePage(repoParts[0], repoParts[1])
+	forgePage := NewForgePage(repoParts[0], repoParts[1], addBasePath)
 
 	// init+clear directory
 	log.Printf("Re-creating page path %s", forgePage.StoragePath)
@@ -109,14 +109,21 @@ func handleNewDeployment(w http.ResponseWriter, r *http.Request) {
 		forgePage.AddProtectionFlag()
 	}
 
-	log.Printf("Success, deployed to %s/%s", config.GetPagesURLWithAdditionalSubdomain(forgePage.Owner), forgePage.Repo)
-	w.WriteHeader(http.StatusCreated)
-	fmt.Fprintf(w, "Success, deployed to %s/%s", config.GetPagesURLWithAdditionalSubdomain(forgePage.Owner), forgePage.Repo)
+	msg := fmt.Sprintf("Success, deployed to %s/%s", config.GetPagesURLWithAdditionalSubdomain(forgePage.Owner), forgePage.Repo)
+	if addBasePath != "" {
+		msg += "/" + addBasePath
+	}
+	if forgePage.HasProtectionFlag() {
+		msg += " (protected, requires OAuth2 authentication)"
+	}
+	log.Println(msg)
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, msg)
 }
 
 func handleDeleteDeployment(w http.ResponseWriter, r *http.Request) {
 	// get params
-	repo, accessToken, _, err := getRepoAndKey(r.URL.Query())
+	repo, accessToken, addBasePath, _, err := getParams(r.URL.Query())
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Bad request: " + err.Error()))
@@ -159,7 +166,7 @@ func handleDeleteDeployment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// do the delete
-	forgePage := NewForgePage(repoParts[0], repoParts[1])
+	forgePage := NewForgePage(repoParts[0], repoParts[1], addBasePath)
 	log.Printf("Deleting page path %s", forgePage.StoragePath)
 	if err := forgePage.Purge(); err != nil {
 		log.Printf("Error deleting deployment %s", err.Error())
@@ -168,21 +175,29 @@ func handleDeleteDeployment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Success, deleted %s/%s", config.GetPagesURLWithAdditionalSubdomain(forgePage.Owner), forgePage.Repo)
+	msg := fmt.Sprintf("Success, deleted %s/%s", config.GetPagesURLWithAdditionalSubdomain(forgePage.Owner), forgePage.Repo)
+	if addBasePath != "" {
+		msg += "/" + addBasePath
+	}
+	log.Println(msg)
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Success, deleted %s/%s", config.GetPagesURLWithAdditionalSubdomain(forgePage.Owner), forgePage.Repo)
+	fmt.Fprint(w, msg)
 }
 
-func getRepoAndKey(urlQuery url.Values) (string, string, bool, error) {
-	repo := urlQuery.Get("repo")
+func getParams(urlQuery url.Values) (repo, accessToken, addBasePath string, protect bool, err error) {
+	repo = urlQuery.Get("repo")
 	if repo == "" {
-		return "", "", false, errors.New("missing parameter: repo")
+		err = errors.New("missing parameter: repo")
+		return
 	}
-	accessToken := urlQuery.Get("access_token")
+	accessToken = urlQuery.Get("access_token")
 	if accessToken == "" && !*skipDeployChecks {
-		return "", "", false, errors.New("missing parameter: access_token")
+		err = errors.New("missing parameter: access_token")
+		return
 	}
-	return repo, accessToken, urlQuery.Has("protect"), nil
+	addBasePath = urlQuery.Get("additional_base_path") // if not set --> empty string
+	protect = urlQuery.Has("protect")
+	return
 }
 
 func checkUsernameValid(username string) error {
