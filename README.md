@@ -11,8 +11,9 @@ Deployed pages can be secured by enforcing the user permissions configured in th
 
 - Deploy static pages using the [Forge Pages Action](https://code.leon.wtf/leon/Forge-Pages-Action) or manually using `tar` and `curl`
 - Uses the worflow token (e.g. `${{ forgejo.token }}`) to ensure write permissions to the repository before deployment
-- Same URL-layout as with GitHub/GitLab Pages: `https://<owner>.<base-url>/<repo>/*`
 - Can protect pages with the Forgejo/Gitea OAuth2 provider
+- Same URL-layout as with GitHub/GitLab Pages: `https://<owner>.<base-url>/<repo>/*`
+    - Can optionally add an additional base path after the `<repo>` part that can be seperatly protected (useful when deploying multiple versions in one repo or for previewing contents of a pull request)
 
 
 ## How does it work?
@@ -23,10 +24,11 @@ The Forge Pages Server is a Go application that provides a `POST /deploy` endpoi
     - This can also be a PAT, as long as it has the appropriate permissions
 - `protect`: If existent, the page will be protected using the Forgejo/Gitea OAuth2 provider. Only users with at least `read`/`pull` permissions can view this page.
     - Alternativly, you can add an empty file called `.protect` to the root of the page to enable protection
+- `additional_base_path`: Can be used to set an additional base path suffix to allow for multiple deployments per repo
 
 When visiting a protected page, you will get redirected to the configured OAuth2 provider, where you must log in. If you have the correct permission, you will get redirected to the page.
 
-Deployments can be deleted using the `DELETE /deploy` endpoint or by uploading an empty page to the same location. The delete endpoint also requires the `repo` and `access_token` parameters.
+Deployments can be deleted using the `DELETE /deploy` endpoint or by uploading an empty page to the same location. The delete endpoint also requires the `repo` and `access_token` parameters (and `additional_base_path` if set during deployment).
 
 
 ## Installation

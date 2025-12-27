@@ -20,19 +20,25 @@ type ForgePage struct {
 	Repo        string
 }
 
-func NewForgePage(owner, repo string) *ForgePage {
+func NewForgePage(owner, repo, addBasePath string) *ForgePage {
 	lowerOwner := strings.ToLower(owner)
 	lowerRepo := strings.ToLower(repo)
+	lowerAddBasePath := "__ROOT__" // default, if no additional base path is provided
+	if addBasePath != "" {
+		lowerAddBasePath = strings.ToLower(addBasePath)
+	}
 
-	return &ForgePage{
+	fp := &ForgePage{
 		StoragePath: filepath.Join(
 			config.ServePath,
 			lowerOwner,
 			lowerRepo,
+			lowerAddBasePath,
 		),
 		Owner: lowerOwner,
 		Repo:  lowerRepo,
 	}
+	return fp
 }
 
 func (fp *ForgePage) Exists() bool {
