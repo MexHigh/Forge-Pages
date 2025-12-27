@@ -32,7 +32,7 @@ func (u *URLPathHelper) GetElement(elemIndex int) string {
 }
 
 func (u *URLPathHelper) GetElementsStartingFromElement(elemIndex int) string {
-	return strings.Join(u.allParts[elemIndex:], "")
+	return strings.Join(u.allParts[elemIndex:], "/")
 }
 
 func splitURLPath(urlPath string) []string {
