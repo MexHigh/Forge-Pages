@@ -124,6 +124,20 @@ func handleDeleteDeployment(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("Someone is trying to delete page for repo %s, checking access", repo)
 
+	// check repo param syntax
+	repoParts := strings.Split(repo, "/")
+	if len(repoParts) != 2 {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Bad request: repo does not have exactly one /"))
+		return
+	}
+	// check username valid
+	if err := checkUsernameValid(repoParts[0]); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "Bad request: %s", err.Error())
+		return
+	}
+
 	// check write access
 	writable := false
 	if *skipDeployChecks {
@@ -142,14 +156,6 @@ func handleDeleteDeployment(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("Unauthorized: user does not have write permissions on this repository"))
 			return
 		}
-	}
-
-	// check repo param syntax
-	repoParts := strings.Split(repo, "/")
-	if len(repoParts) != 2 {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Bad request: repo does not have exactly one /"))
-		return
 	}
 
 	// do the delete
@@ -177,4 +183,15 @@ func getRepoAndKey(urlQuery url.Values) (string, string, bool, error) {
 		return "", "", false, errors.New("missing parameter: access_token")
 	}
 	return repo, accessToken, urlQuery.Has("protect"), nil
+}
+
+func checkUsernameValid(username string) error {
+	if usernameContainsDot(username) {
+		return errors.New("username contains a dot, which is not supported")
+	}
+	return nil
+}
+
+func usernameContainsDot(username string) bool {
+	return strings.Contains(username, ".")
 }
