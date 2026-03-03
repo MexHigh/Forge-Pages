@@ -1,0 +1,33 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.forgejo/workflows/test.yml'
+      - '*.go'
+      - '*.mod'
+      - '*.sum'
+      - '**/*_test.go'
+  pull_request:
+    paths:
+      - '.forgejo/workflows/test.yml'
+      - Dockerfile
+      - '*.go'
+      - '*.mod'
+      - '*.sum'
+      - '**/*_test.go'
+
+jobs:
+  test:
+    runs-on: docker
+    container:
+      image: golang:1.24-alpine
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Download dependencies
+        run: go mod download
+      - name: Run tests
+        run: go test -v ./...

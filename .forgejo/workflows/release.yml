@@ -1,17 +1,63 @@
+name: Release
+
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
+    paths:
+      - '.forgejo/workflows/release.yml'
+      - Dockerfile
+      - '*.go'
+      - '*.mod'
+      - '*.sum'
+  workflow_dispatch:
 
 env:
   IMAGE_SLUG: ${{ vars.FORGEJO_HOST }}/${{ forgejo.repository }}
 
 jobs:
-  docker-build-and-push:
-    runs-on: docker
+  tag:
+    runs-on: debian-node-lts
+    outputs:
+      tag: ${{ steps.create_tag.outputs.tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Create version tag
+        id: create_tag
+        run: |
+          # Get latest tag, default to v0.0.0 if none exists
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Latest tag: $LATEST_TAG"
+          
+          # Parse version (remove 'v' prefix)
+          VERSION=${LATEST_TAG#v}
+          MAJOR=$(echo $VERSION | cut -d. -f1)
+          MINOR=$(echo $VERSION | cut -d. -f2)
+          PATCH=$(echo $VERSION | cut -d. -f3)
+          
+          # Increment patch version
+          NEW_PATCH=$((PATCH + 1))
+          NEW_TAG="v${MAJOR}.${MINOR}.${NEW_PATCH}"
+          
+          echo "Creating tag: $NEW_TAG"
+          git config user.name "forgejo-actions[bot]"
+          git config user.email "forgejo-actions[bot]@users.noreply.code.leon.wtf"
+          git tag -a "$NEW_TAG" -m "Release $NEW_TAG"
+          git push origin "$NEW_TAG"
+          
+          echo "tag=$NEW_TAG" >> $GITHUB_OUTPUT
+
+  docker-build-and-push:
+    runs-on: docker
+    needs: tag
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.tag.outputs.tag }}
       - name: Lowercase Docker image name
         id: image_string
         uses: https://github.com/ASzc/change-string-case-action@v6
@@ -24,16 +70,17 @@ jobs:
           username: ${{ forgejo.actor }}
           password: ${{ secrets.REGISTRY_TOKEN }}
       - name: Docker build versioned
-        run: docker build -t ${{ steps.image_string.outputs.lowercase }}:${{ forgejo.ref_name }} .
+        run: docker build -t ${{ steps.image_string.outputs.lowercase }}:${{ needs.tag.outputs.tag }} .
       - name: Docker push versioned
-        run: docker push ${{ steps.image_string.outputs.lowercase }}:${{ forgejo.ref_name }}
+        run: docker push ${{ steps.image_string.outputs.lowercase }}:${{ needs.tag.outputs.tag }}
       - name: Docker tag latest
-        run: docker tag ${{ steps.image_string.outputs.lowercase }}:${{ forgejo.ref_name }} ${{ steps.image_string.outputs.lowercase }}:latest
+        run: docker tag ${{ steps.image_string.outputs.lowercase }}:${{ needs.tag.outputs.tag }} ${{ steps.image_string.outputs.lowercase }}:latest
       - name: Docker push latest
         run: docker push ${{ steps.image_string.outputs.lowercase }}:latest
 
   create-release:
     runs-on: debian-node-lts
+    needs: [tag, docker-build-and-push]
     steps:
       - name: Lowercase Docker image name
         id: image_string
@@ -44,10 +91,11 @@ jobs:
         uses: actions/forgejo-release@v2.5.0
         with:
           direction: upload
+          tag: ${{ needs.tag.outputs.tag }}
           token: ${{ forgejo.token }}
           release-notes: |
-            Release for **Forge Pages ${{ forgejo.ref_name }}**.
+            Release for **Forge Pages ${{ needs.tag.outputs.tag }}**.
             
             New docker images:
-            - `${{ steps.image_string.outputs.lowercase }}:${{ forgejo.ref_name }}` _(new tag)_
+            - `${{ steps.image_string.outputs.lowercase }}:${{ needs.tag.outputs.tag }}` _(new tag)_
             - `${{ steps.image_string.outputs.lowercase }}:latest` _(updated to refer to this version)_
