@@ -8,13 +8,36 @@ on:
       - '*.go'
       - '*.mod'
       - '*.sum'
+      - '**/*_test.go'
+  pull_request:
+    paths:
+      - '.forgejo/workflows/*'
+      - Dockerfile
+      - '*.go'
+      - '*.mod'
+      - '*.sum'
+      - '**/*_test.go'
 
 env:
   IMAGE_SLUG: ${{ vars.FORGEJO_HOST }}/${{ forgejo.repository }}
 
 jobs:
+  test:
+    runs-on: docker
+    container:
+      image: golang:1.24-alpine
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Download dependencies
+        run: go mod download
+      - name: Run tests
+        run: go test -v ./...
+
   docker-build-and-push:
     runs-on: docker
+    needs: test
+    if: forgejo.event_name == 'push' && forgejo.ref == 'refs/heads/main'
     steps:
       - name: Checkout
         uses: actions/checkout@v6
