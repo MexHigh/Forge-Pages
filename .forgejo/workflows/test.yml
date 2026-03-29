@@ -18,6 +18,7 @@ on:
       - '*.mod'
       - '*.sum'
       - '**/*_test.go'
+  workflow_call:
 
 jobs:
   test:

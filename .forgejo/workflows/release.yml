@@ -2,57 +2,20 @@ name: Release
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - '.forgejo/workflows/release.yml'
-      - Dockerfile
-      - '*.go'
-      - '*.mod'
-      - '*.sum'
-  workflow_dispatch:
+    tags:
+      - 'v*'
 
 env:
   IMAGE_SLUG: ${{ vars.FORGEJO_HOST }}/${{ forgejo.repository }}
 
 jobs:
-  tag:
-    runs-on: debian-node-lts
-    outputs:
-      tag: ${{ steps.create_tag.outputs.tag }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-      - name: Create version tag
-        id: create_tag
-        run: |
-          # Get latest tag, default to v0.0.0 if none exists
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          echo "Latest tag: $LATEST_TAG"
-          
-          # Parse version (remove 'v' prefix)
-          VERSION=${LATEST_TAG#v}
-          MAJOR=$(echo $VERSION | cut -d. -f1)
-          MINOR=$(echo $VERSION | cut -d. -f2)
-          PATCH=$(echo $VERSION | cut -d. -f3)
-          
-          # Increment patch version
-          NEW_PATCH=$((PATCH + 1))
-          NEW_TAG="v${MAJOR}.${MINOR}.${NEW_PATCH}"
-          
-          echo "Creating tag: $NEW_TAG"
-          git config user.name "forgejo-actions[bot]"
-          git config user.email "forgejo-actions[bot]@users.noreply.code.leon.wtf"
-          git tag -a "$NEW_TAG" -m "Release $NEW_TAG"
-          git push origin "$NEW_TAG"
-          
-          echo "tag=$NEW_TAG" >> $GITHUB_OUTPUT
+  test:
+    uses: ./.forgejo/workflows/test.yml
 
   docker-build-and-push:
     runs-on: docker
-    needs: tag
+    needs:
+      - test
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -80,7 +43,9 @@ jobs:
 
   create-release:
     runs-on: debian-node-lts
-    needs: [tag, docker-build-and-push]
+    needs:
+      - test
+      - docker-build-and-push
     steps:
       - name: Lowercase Docker image name
         id: image_string
