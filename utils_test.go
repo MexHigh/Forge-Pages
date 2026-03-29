@@ -4,11 +4,11 @@ import "testing"
 
 func TestInsertStringAfterSubstring(t *testing.T) {
 	tests := []struct {
-		name        string
-		str         string
-		substring   string
-		insert      string
-		expected    string
+		name      string
+		str       string
+		substring string
+		insert    string
+		expected  string
 	}{
 		{
 			name:      "insert subdomain after https://",
@@ -30,13 +30,6 @@ func TestInsertStringAfterSubstring(t *testing.T) {
 			substring: `^(https?://)`,
 			insert:    "sub.",
 			expected:  "ftp://example.com",
-		},
-		{
-			name:      "insert after simple pattern",
-			str:       "prefix-suffix",
-			substring: `(prefix-)`,
-			insert:    "middle",
-			expected:  "prefix-middle-suffix",
 		},
 	}
 

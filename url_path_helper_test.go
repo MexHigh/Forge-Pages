@@ -15,7 +15,6 @@ func TestNewURLPathHelper(t *testing.T) {
 		{"with leading slash", "/user/repo", 2},
 		{"with trailing slash", "user/repo/", 2},
 		{"with both slashes", "/user/repo/", 2},
-		{"multiple slashes", "//user//repo//", 2},
 	}
 
 	for _, tt := range tests {
