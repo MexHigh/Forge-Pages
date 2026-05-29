@@ -6,3 +6,14 @@ oauth:
   secret: secret-id
   auth_url: id.example.com/auth
   token_url: id.example.com/token
+
+# Optional: Custom route overrides.
+# Maps a hostname directly to an owner/repo combination,
+# bypassing the standard <owner>.<base-url>/<repo> URL parsing.
+# Useful for serving pages at the root of a subdomain.
+# Example:
+# routes:
+#   myproject.pages.example.com:
+#     owner: myorg
+#     repo: myproject
+routes:

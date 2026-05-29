@@ -1,0 +1,16 @@
+# Forge-Pages — Contributors
+
+## Upstream Author
+- Leon Schmidt <leon@code.leon.wtf>
+  - Original project: https://code.leon.wtf/leon/Forge-Pages
+
+## Fork Maintainer
+- Jens Grote <jens@grote.org>
+  - Fork: https://github.com/JensGrote/forge-pages
+  - Feature: Custom Routes (optional routes mapping in config.yml)
+
+---
+
+To contribute, please open a Pull Request or Issue on the upstream repository
+at https://code.leon.wtf/leon/Forge-Pages or on our fork at
+https://github.com/JensGrote/forge-pages.

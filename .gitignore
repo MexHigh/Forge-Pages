@@ -1,3 +1,11 @@
+# Local development config
 config.yaml
 config.yml
 _files
+
+# Compiled binary
+forge-pages
+
+# OS files
+.DS_Store
+Thumbs.db

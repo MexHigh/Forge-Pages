@@ -1,0 +1,38 @@
+# =============================================================================
+# SCM Info — Forge-Pages
+# =============================================================================
+# This file describes the source code management metadata for this repository.
+
+repository:
+  name: forge-pages
+  description: >
+    CI/CD-driven static page server for Forgejo and Gitea.
+    Fork with optional custom routes feature.
+  url: https://github.com/JensGrote/forge-pages
+  upstream_url: https://code.leon.wtf/leon/Forge-Pages
+  internal_mirror: https://git.grote.home/derchiefhb/forge-pages
+  default_branch: main
+  development_branch: feat/custom-routes-config
+
+ci_cd:
+  provider: Forgejo Actions
+  runner: docker
+  workflows:
+    - .forgejo/workflows/test.yml
+
+license: MIT
+
+owners:
+  - name: Jens Grote
+    email: jens@grote.org
+    role: fork maintainer
+
+upstream:
+  author: Leon Schmidt
+  url: https://code.leon.wtf/leon/Forge-Pages
+  license: none (unlicensed)
+
+notes: >
+  Custom Routes feature adds an optional 'routes' mapping to config.yml,
+  allowing clean subdomain URLs (e.g. project.pages.example.com) without
+  changing the reverse proxy configuration.

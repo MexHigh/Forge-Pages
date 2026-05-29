@@ -1,0 +1,164 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-05-29T12:00:00Z",
+    "tools": [
+      {
+        "vendor": "grote.home",
+        "name": "forge-pages",
+        "version": "1.2.0-dev"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "name": "forge-pages",
+      "version": "1.2.0-dev",
+      "description": "CI/CD-driven static page server for Forgejo and Gitea",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://git.grote.home/derchiefhb/forge-pages"
+        },
+        {
+          "type": "distribution",
+          "url": "https://git.grote.home/derchiefhb/forge-pages"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "bom-ref": "pkg:golang/github.com/alexedwards/scs/v2@v2.9.0",
+      "name": "scs",
+      "version": "2.9.0",
+      "description": "HTTP session management for Go",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:golang/github.com/alexedwards/scs/v2@v2.9.0",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/alexedwards/scs"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "a505a7059b60131e922b4c3f9162f49dba92025b8e2d0b29a4"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:golang/github.com/google/uuid@v1.6.0",
+      "name": "uuid",
+      "version": "1.6.0",
+      "description": "Go package for UUIDs",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "purl": "pkg:golang/github.com/google/uuid@v1.6.0",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/google/uuid"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:golang/golang.org/x/oauth2@v0.33.0",
+      "name": "oauth2",
+      "version": "0.33.0",
+      "description": "Go OAuth 2.0 library",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "purl": "pkg:golang/golang.org/x/oauth2@v0.33.0",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://go.googlesource.com/oauth2"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:golang/gopkg.in/yaml.v3@v3.0.1",
+      "name": "yaml",
+      "version": "3.0.1",
+      "description": "YAML support for Go",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:golang/gopkg.in/yaml.v3@v3.0.1",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/go-yaml/yaml"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:golang/gopkg.in/check.v1@v1.0.0-20161208181325-20d25e280405",
+      "name": "check",
+      "version": "1.0.0-20161208181325-20d25e280405",
+      "description": "Rich testing for Go",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-2-Clause"
+          }
+        }
+      ],
+      "purl": "pkg:golang/gopkg.in/check.v1@v1.0.0-20161208181325-20d25e280405",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/go-check/check"
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:golang/code.leon.wtf/leon/forge-pages",
+      "dependsOn": [
+        "pkg:golang/github.com/alexedwards/scs/v2@v2.9.0",
+        "pkg:golang/github.com/google/uuid@v1.6.0",
+        "pkg:golang/golang.org/x/oauth2@v0.33.0",
+        "pkg:golang/gopkg.in/yaml.v3@v3.0.1"
+      ]
+    }
+  ]
+}
