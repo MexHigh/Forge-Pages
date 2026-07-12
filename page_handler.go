@@ -27,7 +27,11 @@ func handlePage(w http.ResponseWriter, r *http.Request) {
 
 	// get and check repo owner
 	repoOwner := strings.TrimSuffix(r.Host, "."+config.GetPagesURLHostOnly())
-	if strings.ContainsAny(repoOwner, ".,/") {
+	// Note: dots are allowed here because the Traefik dash-to-dot middleware
+	// rewrites dashed subdomains to dotted (dot-to-dash URL convention, GP-009).
+	// Original code rejected dots: strings.ContainsAny(repoOwner, ".,/")
+	// We only reject "/" and "," which are never valid in subdomains.
+	if strings.ContainsAny(repoOwner, "/,") {
 		log.Printf("User hit URL with malformed owner subdomain (Host: %s, path: %s)", r.Host, r.URL)
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Bad request: repo owner (subdomain) is malformed"))
@@ -49,7 +53,6 @@ func handlePage(w http.ResponseWriter, r *http.Request) {
 		log.Println("Possible additional base path found, checking if it exists")
 		tempPage := NewForgePage(repoOwner, repoPath, urlHelper.GetElement(1))
 		if tempPage.Exists() {
-			// this means that the addBasePath does not exist, not that the page does not exist in __ROOT__
 			log.Println("Additional base path exists, requesting")
 			addBasePath = urlHelper.GetElement(1)
 		} else {
@@ -70,13 +73,10 @@ func handlePage(w http.ResponseWriter, r *http.Request) {
 	if page.HasProtectionFlag() {
 		log.Printf("Protected page hit (Host: %s, path: %s)", r.Host, r.URL)
 
-		// get access token or redirect to login if not found
 		tokenIface := sessionManager.Get(r.Context(), "access_token")
 		token, ok := tokenIface.(oauth2.Token)
 		if !ok {
 			log.Println("access_token not found in session")
-
-			// set redirect target, then do redirect to oauth
 			fullURL := getFullURL(r)
 			sessionManager.Put(r.Context(), "redirect_to", fullURL)
 			log.Printf("redirect_url set to %s, redirecting to /login", fullURL)
@@ -84,11 +84,9 @@ func handlePage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// generate client from access token and check permissions
 		client := oauthConf.Client(r.Context(), &token)
-
 		log.Println("Checking permissions via API")
-		readable, err := ForgeCheckRepoReadableWithClient(fmt.Sprintf("%s/%s", repoOwner, repoPath), client) // we should not use page.[Owner|Repo] here, since those are always lowercase
+		readable, err := ForgeCheckRepoReadableWithClient(fmt.Sprintf("%s/%s", repoOwner, repoPath), client)
 		if err != nil {
 			log.Printf("Error while checking permissions: %s", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
@@ -101,13 +99,12 @@ func handlePage(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("Unauthorized: no read access for you :("))
 			return
 		}
-
 		log.Println("OAuth2 successful and user has read permissions, continue serving assets")
 	}
 
 	// deliver static content
 	assetsPathRequest := page.StoragePath
-	if addBasePath != "" { // "if we have an existing addBasePath"
+	if addBasePath != "" {
 		assetsPathRequest = filepath.Join(assetsPathRequest, filepath.Clean(urlHelper.GetElementsStartingFromElement(2)))
 	} else {
 		assetsPathRequest = filepath.Join(assetsPathRequest, filepath.Clean(urlHelper.GetElementsStartingFromElement(1)))
