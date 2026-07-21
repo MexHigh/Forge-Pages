@@ -61,7 +61,7 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 	// redirect and delete target
 	redirURL := sessionManager.PopString(r.Context(), "redirect_to")
 	if redirURL != "" {
-		log.Printf("Redirection target found in session: %s", redirURL)
+		log.Printf("Redirection target found in session: %s", safeURLStringForLogging(redirURL))
 		http.Redirect(w, r, redirURL, http.StatusFound)
 	} else {
 		log.Printf("Redirection target not found in session, redirecting to page root")

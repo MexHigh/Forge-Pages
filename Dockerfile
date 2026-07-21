@@ -1,7 +1,10 @@
 # build backend
 FROM golang:1.24.10 AS go-builder
 WORKDIR /go/src/app
+# COPY only the Go sources and module files (plus the pathsafe/ subpackage),
+# keeping .git and untracked scratch files out of the build context.
 COPY *.go *.mod *.sum .
+COPY pathsafe/ ./pathsafe/
 RUN go get -d -v ./...
 RUN CGO_ENABLED=1 GOOS=linux go install -a -ldflags '-linkmode external -extldflags "-static"' .
 

@@ -14,7 +14,7 @@ import (
 // flags
 var (
 	configPath       = flag.String("config", "./config.yml", "Path to the YAML config file")
-	skipDeployChecks = flag.Bool("skip_deploy_checks", false, "If set, the deploy route does not verify the repository or the access_token parameters and always deploys")
+	skipDeployChecks = flag.Bool("skip_deploy_checks", false, "If set, the deploy route does not verify the repository or the access token and always deploys")
 )
 
 // public vars
@@ -24,6 +24,15 @@ var sessionManager *scs.SessionManager
 const (
 	pagesBind          = "0.0.0.0:8080"
 	maxDeploySizeBytes = 20971520 // 20 MB
+
+	// defaultMaxTotalExtractedBytes is the fallback cumulative uncompressed
+	// size ceiling per deployment when max_total_extracted_bytes is not set
+	// in the config file. It caps the sum of all regular-file bytes written
+	// during a single extractTarGz call, independent of the existing
+	// per-file (maxTarEntrySizeBytes) and per-archive file-count
+	// (maxNumOfTarEntries) limits -- those alone still allow up to
+	// 2500 * 5 MiB (~12 GiB) to be written per request.
+	defaultMaxTotalExtractedBytes = 268435456 // 256 MiB
 )
 
 func init() {

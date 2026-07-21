@@ -8,21 +8,21 @@ import (
 
 func TestConfig_SetDefaults(t *testing.T) {
 	tests := []struct {
-		name        string
-		config      Config
-		expectError bool
+		name          string
+		config        Config
+		expectError   bool
 		errorContains string
 	}{
 		{
-			name:        "missing forge_url",
-			config:      Config{},
-			expectError: true,
+			name:          "missing forge_url",
+			config:        Config{},
+			expectError:   true,
 			errorContains: "forge_url",
 		},
 		{
-			name: "missing pages_url",
-			config: Config{ForgeURL: "https://forge.example.com"},
-			expectError: true,
+			name:          "missing pages_url",
+			config:        Config{ForgeURL: "https://forge.example.com"},
+			expectError:   true,
 			errorContains: "pages_url",
 		},
 		{
@@ -31,7 +31,7 @@ func TestConfig_SetDefaults(t *testing.T) {
 				ForgeURL: "https://forge.example.com",
 				PagesURL: "https://pages.example.com",
 			},
-			expectError: true,
+			expectError:   true,
 			errorContains: "oidc.id",
 		},
 		{
@@ -48,7 +48,7 @@ func TestConfig_SetDefaults(t *testing.T) {
 					ID: "client-id",
 				},
 			},
-			expectError: true,
+			expectError:   true,
 			errorContains: "oidc.secret",
 		},
 		{
@@ -66,7 +66,7 @@ func TestConfig_SetDefaults(t *testing.T) {
 					Secret: "client-secret",
 				},
 			},
-			expectError: true,
+			expectError:   true,
 			errorContains: "oidc.auth_url",
 		},
 		{
@@ -85,7 +85,7 @@ func TestConfig_SetDefaults(t *testing.T) {
 					AuthURL: "https://auth.example.com",
 				},
 			},
-			expectError: true,
+			expectError:   true,
 			errorContains: "oidc.token_url",
 		},
 		{
@@ -168,6 +168,137 @@ func TestConfig_DefaultServePath(t *testing.T) {
 
 	if c.ServePath != "/srv" {
 		t.Errorf("ServePath = %q, want %q", c.ServePath, "/srv")
+	}
+}
+
+func TestConfig_DefaultMaxTotalExtractedBytes(t *testing.T) {
+	c := Config{
+		ForgeURL: "https://forge.example.com",
+		PagesURL: "https://pages.example.com",
+		OAuth: struct {
+			ID       string
+			Secret   string
+			AuthURL  string `yaml:"auth_url"`
+			TokenURL string `yaml:"token_url"`
+		}{
+			ID:       "client-id",
+			Secret:   "client-secret",
+			AuthURL:  "https://auth.example.com",
+			TokenURL: "https://token.example.com",
+		},
+	}
+
+	if err := c.setDefaults(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if c.MaxTotalExtractedBytes != defaultMaxTotalExtractedBytes {
+		t.Errorf("MaxTotalExtractedBytes = %d, want default %d", c.MaxTotalExtractedBytes, defaultMaxTotalExtractedBytes)
+	}
+}
+
+func TestConfig_MaxTotalExtractedBytes_ExplicitValuePreserved(t *testing.T) {
+	c := Config{
+		ForgeURL:               "https://forge.example.com",
+		PagesURL:               "https://pages.example.com",
+		MaxTotalExtractedBytes: 12345,
+		OAuth: struct {
+			ID       string
+			Secret   string
+			AuthURL  string `yaml:"auth_url"`
+			TokenURL string `yaml:"token_url"`
+		}{
+			ID:       "client-id",
+			Secret:   "client-secret",
+			AuthURL:  "https://auth.example.com",
+			TokenURL: "https://token.example.com",
+		},
+	}
+
+	if err := c.setDefaults(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if c.MaxTotalExtractedBytes != 12345 {
+		t.Errorf("MaxTotalExtractedBytes = %d, want explicit value 12345 preserved", c.MaxTotalExtractedBytes)
+	}
+}
+
+func TestConfig_SetDefaults_InvalidPagesURLScheme(t *testing.T) {
+	tests := []struct {
+		name     string
+		pagesURL string
+	}{
+		{"non-http(s) scheme", "ftp://pages.example.com"},
+		{"missing scheme", "pages.example.com"},
+		{"missing host", "https://"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := Config{
+				ForgeURL: "https://forge.example.com",
+				PagesURL: tt.pagesURL,
+				OAuth: struct {
+					ID       string
+					Secret   string
+					AuthURL  string `yaml:"auth_url"`
+					TokenURL string `yaml:"token_url"`
+				}{
+					ID:       "client-id",
+					Secret:   "client-secret",
+					AuthURL:  "https://auth.example.com",
+					TokenURL: "https://token.example.com",
+				},
+			}
+			err := c.setDefaults()
+			if err == nil {
+				t.Fatalf("expected error for pages_url %q, got nil", tt.pagesURL)
+			}
+		})
+	}
+}
+
+func TestConfig_GetPagesURLScheme(t *testing.T) {
+	tests := []struct {
+		name            string
+		pagesURL        string
+		callSetDefaults bool
+		expected        string
+	}{
+		{"https via setDefaults (cached)", "https://pages.example.com", true, "https"},
+		{"http via setDefaults (cached)", "http://pages.example.com", true, "http"},
+		{"https without setDefaults (lazy parse)", "https://pages.example.com", false, "https"},
+		{"http without setDefaults (lazy parse)", "http://pages.example.com", false, "http"},
+		{"malformed without setDefaults falls back to http", "not-a-url", false, "http"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Config{
+				ForgeURL: "https://forge.example.com",
+				PagesURL: tt.pagesURL,
+				OAuth: struct {
+					ID       string
+					Secret   string
+					AuthURL  string `yaml:"auth_url"`
+					TokenURL string `yaml:"token_url"`
+				}{
+					ID:       "client-id",
+					Secret:   "client-secret",
+					AuthURL:  "https://auth.example.com",
+					TokenURL: "https://token.example.com",
+				},
+			}
+			if tt.callSetDefaults {
+				if err := c.setDefaults(); err != nil {
+					t.Fatalf("unexpected setDefaults error: %v", err)
+				}
+			}
+			if got := c.GetPagesURLScheme(); got != tt.expected {
+				t.Errorf("GetPagesURLScheme() = %q, want %q", got, tt.expected)
+			}
+		})
 	}
 }
 

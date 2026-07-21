@@ -18,17 +18,17 @@ Deployed pages can be secured by enforcing the user permissions configured in th
 
 ## How does it work?
 
-The Forge Pages Server is a Go application that provides a `POST /deploy` endpoint. Pages must be TAR'ed and GZIP'ed and posted to this endpoint, together with the following query parameters:
+The Forge Pages Server is a Go application that provides a `POST /deploy` endpoint. Pages must be TAR'ed and GZIP'ed and posted to this endpoint, authenticated with an `Authorization: Bearer <token>` header, together with the following query parameters:
 - `repo`: Repository slug. Used to construct the URL where the page will be deployed to. **To prevent confusion, the repo name is always lowercased!**
-- `access_token`: The workflow token (e.g. `${{ forgejo.token }}`) to verify permissions to deploy a page to the target specified by `repo`.
-    - This can also be a PAT, as long as it has the appropriate permissions
 - `protect`: If existent, the page will be protected using the Forgejo/Gitea OAuth2 provider. Only users with at least `read`/`pull` permissions can view this page.
     - Alternativly, you can add an empty file called `.protect` to the root of the page to enable protection
 - `additional_base_path`: Can be used to set an additional base path suffix to allow for multiple deployments per repo
 
+The `Authorization: Bearer <token>` header carries the workflow token (e.g. `${{ forgejo.token }}`) used to verify permissions to deploy a page to the target specified by `repo`. This can also be a PAT, as long as it has the appropriate permissions. **The token is never accepted as a query parameter** (e.g. `?access_token=...`) — URLs end up in server logs, reverse-proxy access logs, and browser/CI history, so a request presenting the token only in the query string is rejected with `410 Gone`.
+
 When visiting a protected page, you will get redirected to the configured OAuth2 provider, where you must log in. If you have the correct permission, you will get redirected to the page.
 
-Deployments can be deleted using the `DELETE /deploy` endpoint or by uploading an empty page to the same location. The delete endpoint also requires the `repo` and `access_token` parameters (and `additional_base_path` if set during deployment).
+Deployments can be deleted using the `DELETE /deploy` endpoint or by uploading an empty page to the same location. The delete endpoint also requires the `repo` query parameter and the `Authorization: Bearer <token>` header (and `additional_base_path` if set during deployment).
 
 
 ## Installation
