@@ -6,3 +6,9 @@ oauth:
   secret: secret-id
   auth_url: id.example.com/auth
   token_url: id.example.com/token
+
+# Optional: static routes
+routes:
+  mydomain.com:
+    owner: myorg
+    repo: myproject

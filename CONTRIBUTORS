@@ -1,0 +1,11 @@
+# Forge-Pages Contributors
+
+- Leon Schmidt <mail@leon.wtf>
+  - Maintainer
+- Jens Grote <jens@grote.org>
+  - Custom Routes (optional routes mapping in config.yml) (#10)
+
+---
+
+To contribute, please open a Pull Request or Issue on the upstream repository
+at https://code.leon.wtf/leon/Forge-Pages or on the mirror at https://github.com/MexHigh/Forge-Pages.

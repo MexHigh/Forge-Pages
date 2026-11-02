@@ -10,6 +10,11 @@ import (
 
 var config *Config
 
+type RouteConfig struct {
+	Owner string `yaml:"owner"`
+	Repo  string `yaml:"repo"`
+}
+
 type Config struct {
 	ForgeURL  string `yaml:"forge_url"`
 	PagesURL  string `yaml:"pages_url"`
@@ -20,6 +25,7 @@ type Config struct {
 		AuthURL  string `yaml:"auth_url"`
 		TokenURL string `yaml:"token_url"`
 	} `yaml:"oauth"`
+	Routes map[string]RouteConfig `yaml:"routes"`
 }
 
 func (c *Config) setDefaults() error {
