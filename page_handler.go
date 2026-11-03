@@ -46,9 +46,7 @@ func handlePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// get and check repo owner -- shared accepted-host predicate with
-	// getFullURL (see resolvePagesHostLabel) so the two can't drift.
-	repoOwner, ok := resolvePagesHostLabel(r.Host, baseHost)
+	repoOwner, _ := resolvePagesHostLabel(r.Host, baseHost)
 
 	// check custom routes by repoOwner subdomain before standard parsing
 	if owner, repo, ok := lookupRoute(r.Host); ok {
