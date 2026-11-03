@@ -12,7 +12,11 @@ import (
 	"strings"
 )
 
-const protectionFlag = ".protect"
+const (
+	protectionFlag = ".protect"
+	stagingSuffix  = ".staging"
+	backupSuffix   = ".backup"
+)
 
 type ForgePage struct {
 	StoragePath string
@@ -63,6 +67,82 @@ func (fp *ForgePage) HasProtectionFlag() bool {
 
 func (fp *ForgePage) Purge() error {
 	return os.RemoveAll(fp.StoragePath)
+}
+
+// Deploy extracts the uploaded tar.gz into a temporary staging directory
+// and atomically swaps it with the current deployment. If anything fails
+// during extraction, the existing deployment is left untouched.
+func (fp *ForgePage) Deploy(r io.Reader, protect bool) error {
+	staging := fp.StoragePath + stagingSuffix
+	backup := fp.StoragePath + backupSuffix
+
+	// clean up stale staging / backup leftovers from a previous crash
+	_ = os.RemoveAll(staging)
+	_ = os.RemoveAll(backup)
+
+	// create parent directory if it does not exist yet
+	if err := os.MkdirAll(filepath.Dir(staging), 0750); err != nil {
+		return fmt.Errorf("could not create staging parent directory: %w", err)
+	}
+
+	// extract into staging area
+	if err := extractTarGz(r, staging); err != nil {
+		_ = os.RemoveAll(staging)
+		return err
+	}
+
+	// honour explicit protect request
+	if protect && !hasProtectionFlag(staging) {
+		if _, err := os.Create(filepath.Join(staging, protectionFlag)); err != nil {
+			_ = os.RemoveAll(staging)
+			return fmt.Errorf("could not add protection flag: %w", err)
+		}
+	}
+
+	// atomically swap staging into the live path
+	if err := atomicReplace(fp.StoragePath, staging); err != nil {
+		return fmt.Errorf("could not activate staged deployment: %w", err)
+	}
+
+	return nil
+}
+
+func hasProtectionFlag(dir string) bool {
+	_, err := os.Stat(filepath.Join(dir, protectionFlag))
+	return err == nil
+}
+
+// atomicReplace moves source to dest. If dest already exists it is first
+// moved to a backup location; the backup is removed after a successful swap.
+// On failure the backup is restored so the previous content remains available.
+func atomicReplace(dest, source string) error {
+	// if there is no current deployment, a simple rename is enough
+	if _, err := os.Stat(dest); os.IsNotExist(err) {
+		return os.Rename(source, dest)
+	}
+
+	// move current deployment out of the way
+	backup := dest + backupSuffix
+	_ = os.RemoveAll(backup)
+	if err := os.Rename(dest, backup); err != nil {
+		return fmt.Errorf("failed to backup current deployment: %w", err)
+	}
+
+	// move staged deployment to live path
+	if err := os.Rename(source, dest); err != nil {
+		// try to restore the previous deployment
+		if rbErr := os.Rename(backup, dest); rbErr != nil {
+			return fmt.Errorf("failed to activate new deployment (%v) and rollback failed (%v)", err, rbErr)
+		}
+		_ = os.RemoveAll(source)
+		return fmt.Errorf("failed to activate new deployment: %w", err)
+	}
+
+	// cleanup backup
+	if err := os.RemoveAll(backup); err != nil {
+		log.Printf("Warning: failed to remove deployment backup %s: %s", backup, err)
+	}
+	return nil
 }
 
 const (

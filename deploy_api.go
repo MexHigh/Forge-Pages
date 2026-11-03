@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 )
 
@@ -71,42 +70,18 @@ func handleNewDeployment(w http.ResponseWriter, r *http.Request) {
 	}
 	forgePage := NewForgePage(repoParts[0], repoParts[1], addBasePath)
 
-	// init+clear directory
-	log.Printf("Re-creating page path %s", forgePage.StoragePath)
-	if err := os.RemoveAll(forgePage.StoragePath); err != nil {
-		log.Printf("Error removing directory: %s", err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Server error: could not delete old page directory"))
-		return
-	}
-	if err := os.MkdirAll(forgePage.StoragePath, 0750); err != nil {
-		log.Printf("Error while creating directory: %s", err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Server error: could not create page directory"))
-		return
-	}
-
-	// read and extract tar.gz file
-	log.Println("Reading body")
-	if err := extractTarGz(r.Body, forgePage.StoragePath); err != nil {
-		log.Printf("Error while reading .tar.gz body: %s; deleting deployment", err.Error())
-		if err := forgePage.Purge(); err != nil {
-			log.Printf("Error deleting deployment %s", err.Error())
-		}
+	// deploy with staging and rollback on failure
+	log.Printf("Deploying to page path %s", forgePage.StoragePath)
+	if err := forgePage.Deploy(r.Body, protect); err != nil {
+		log.Printf("Error while deploying: %s", err.Error())
 		// filter some errors to send accurate codes
 		if strings.HasPrefix(err.Error(), "tar entry too large") || strings.HasPrefix(err.Error(), "upacked more than") {
 			w.WriteHeader(http.StatusRequestEntityTooLarge)
 		} else {
 			w.WriteHeader(http.StatusInternalServerError)
 		}
-		w.Write([]byte("Server error: could not extract tar.gz"))
+		w.Write([]byte("Server error: could not deploy page"))
 		return
-	}
-
-	// add protect flag
-	if protect && !forgePage.HasProtectionFlag() { // this allows for adding the protect flag directly inside the tar.gz archive
-		log.Println("User requested protection, adding flag")
-		forgePage.AddProtectionFlag()
 	}
 
 	msg := fmt.Sprintf("Success, deployed to %s/%s", config.GetPagesURLWithAdditionalSubdomain(forgePage.Owner), forgePage.Repo)
