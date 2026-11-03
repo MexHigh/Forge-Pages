@@ -1,7 +1,6 @@
 forge_url: https://code.example.com
 pages_url:  https://pages.example.com # for testing: http://forge-pages.test:8080
 serve_path: /srv # for testing: ./_files
-max_total_extracted_bytes: 268435456 # optional, cumulative uncompressed bytes allowed per deploy; default 256 MiB (268435456)
 oauth:
   id: client-id
   secret: secret-id
