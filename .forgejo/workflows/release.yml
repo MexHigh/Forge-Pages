@@ -18,7 +18,7 @@ jobs:
       - test
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.tag.outputs.tag }}
       - name: Lowercase Docker image name
@@ -27,7 +27,7 @@ jobs:
         with:
           string: ${{ env.IMAGE_SLUG }}
       - name: Docker login
-        uses: https://github.com/docker/login-action@v3
+        uses: https://github.com/docker/login-action@v4
         with:
           registry: ${{ vars.FORGEJO_HOST }}
           username: ${{ forgejo.actor }}

@@ -27,7 +27,7 @@ jobs:
       image: code.leon.wtf/actions/node-go:lts
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Download dependencies
         run: go mod download
       - name: Run tests
