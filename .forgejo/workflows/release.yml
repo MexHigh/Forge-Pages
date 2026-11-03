@@ -20,7 +20,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          ref: ${{ needs.tag.outputs.tag }}
+          ref: ${{ forgejo.ref_name }}
       - name: Lowercase Docker image name
         id: image_string
         uses: https://github.com/ASzc/change-string-case-action@v6
@@ -33,11 +33,11 @@ jobs:
           username: ${{ forgejo.actor }}
           password: ${{ secrets.REGISTRY_TOKEN }}
       - name: Docker build versioned
-        run: docker build -t ${{ steps.image_string.outputs.lowercase }}:${{ needs.tag.outputs.tag }} .
+        run: docker build -t ${{ steps.image_string.outputs.lowercase }}:${{ forgejo.ref_name }} .
       - name: Docker push versioned
-        run: docker push ${{ steps.image_string.outputs.lowercase }}:${{ needs.tag.outputs.tag }}
+        run: docker push ${{ steps.image_string.outputs.lowercase }}:${{ forgejo.ref_name }}
       - name: Docker tag latest
-        run: docker tag ${{ steps.image_string.outputs.lowercase }}:${{ needs.tag.outputs.tag }} ${{ steps.image_string.outputs.lowercase }}:latest
+        run: docker tag ${{ steps.image_string.outputs.lowercase }}:${{ forgejo.ref_name }} ${{ steps.image_string.outputs.lowercase }}:latest
       - name: Docker push latest
         run: docker push ${{ steps.image_string.outputs.lowercase }}:latest
 
@@ -56,11 +56,11 @@ jobs:
         uses: actions/forgejo-release@v2.5.0
         with:
           direction: upload
-          tag: ${{ needs.tag.outputs.tag }}
+          tag: ${{ forgejo.ref_name }}
           token: ${{ forgejo.token }}
           release-notes: |
-            Release for **Forge Pages ${{ needs.tag.outputs.tag }}**.
+            Release for **Forge Pages ${{ forgejo.ref_name }}**.
             
             New docker images:
-            - `${{ steps.image_string.outputs.lowercase }}:${{ needs.tag.outputs.tag }}` _(new tag)_
+            - `${{ steps.image_string.outputs.lowercase }}:${{ forgejo.ref_name }}` _(new tag)_
             - `${{ steps.image_string.outputs.lowercase }}:latest` _(updated to refer to this version)_
