@@ -32,7 +32,7 @@ func handleDeploy(w http.ResponseWriter, r *http.Request) {
 
 func handleNewDeployment(w http.ResponseWriter, r *http.Request) {
 	// get params
-	repo, accessToken, addBasePath, protect, err := getParams(r.URL.Query())
+	repo, accessToken, addBasePath, protect, err := getParams(r)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Bad request: " + err.Error()))
@@ -98,7 +98,7 @@ func handleNewDeployment(w http.ResponseWriter, r *http.Request) {
 
 func handleDeleteDeployment(w http.ResponseWriter, r *http.Request) {
 	// get params
-	repo, accessToken, addBasePath, _, err := getParams(r.URL.Query())
+	repo, accessToken, addBasePath, _, err := getParams(r)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Bad request: " + err.Error()))
@@ -159,13 +159,14 @@ func handleDeleteDeployment(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, msg)
 }
 
-func getParams(urlQuery url.Values) (repo, accessToken, addBasePath string, protect bool, err error) {
+func getParams(r *http.Request) (repo, accessToken, addBasePath string, protect bool, err error) {
+	urlQuery := r.URL.Query()
 	repo = urlQuery.Get("repo")
 	if repo == "" {
 		err = errors.New("missing parameter: repo")
 		return
 	}
-	accessToken = urlQuery.Get("access_token")
+	accessToken = extractAccessToken(r, urlQuery)
 	if accessToken == "" && !*skipDeployChecks {
 		err = errors.New("missing parameter: access_token")
 		return
@@ -173,6 +174,18 @@ func getParams(urlQuery url.Values) (repo, accessToken, addBasePath string, prot
 	addBasePath = urlQuery.Get("additional_base_path") // if not set --> empty string
 	protect = urlQuery.Has("protect")
 	return
+}
+
+// extractAccessToken prefers a Bearer token from the Authorization header and
+// falls back to the access_token query parameter for backwards compatibility.
+func extractAccessToken(r *http.Request, urlQuery url.Values) string {
+	if authHeader := r.Header.Get("Authorization"); authHeader != "" {
+		const prefix = "Bearer "
+		if strings.HasPrefix(authHeader, prefix) {
+			return strings.TrimSpace(strings.TrimPrefix(authHeader, prefix))
+		}
+	}
+	return urlQuery.Get("access_token")
 }
 
 func checkUsernameValid(username string) error {
