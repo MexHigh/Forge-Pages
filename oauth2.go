@@ -65,7 +65,8 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, redirURL, http.StatusFound)
 	} else {
 		log.Printf("Redirection target not found in session, redirecting to page root")
-		// redir back to base url
-		http.Redirect(w, r, "/", http.StatusFound)
+		// Redirect to the configured pages URL; a relative redirect would let
+		// the Host header decide the destination, which is not proxy-safe.
+		http.Redirect(w, r, config.PagesURL+"/", http.StatusFound)
 	}
 }

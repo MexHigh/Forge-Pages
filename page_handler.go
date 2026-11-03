@@ -162,9 +162,34 @@ func serveDeployedPage(w http.ResponseWriter, r *http.Request, owner, repo, addB
 }
 
 func getFullURL(r *http.Request) string {
-	scheme := "http"
-	if r.TLS != nil {
-		scheme = "https"
+	// The external URL must be built from configuration, not from the request,
+	// so a manipulated Host header cannot influence the OAuth redirect target.
+	pagesHost := config.GetPagesURLHostOnly()
+	requestedHost := r.Host
+
+	var host string
+	switch {
+	// Exact match for the configured pages host.
+	case requestedHost == pagesHost:
+		host = pagesHost
+	// Subdomain-based route (e.g. owner.pages.example.com). Keep the
+	// subdomain prefix but re-attach the configured base host.
+	case strings.HasSuffix(requestedHost, "."+pagesHost):
+		host = strings.TrimSuffix(requestedHost, "."+pagesHost) + "." + pagesHost
+	// Custom route hosts are allowed only when explicitly configured.
+	case config.Routes != nil:
+		if _, ok := config.Routes[requestedHost]; ok {
+			host = requestedHost
+		} else {
+			host = pagesHost
+		}
+	default:
+		host = pagesHost
 	}
-	return fmt.Sprintf("%s://%s%s", scheme, r.Host, r.URL.String())
+
+	scheme := "https"
+	if strings.HasPrefix(config.PagesURL, "http://") {
+		scheme = "http"
+	}
+	return fmt.Sprintf("%s://%s%s", scheme, host, r.URL.String())
 }
