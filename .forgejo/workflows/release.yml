@@ -23,7 +23,7 @@ jobs:
           ref: ${{ forgejo.ref_name }}
       - name: Lowercase Docker image name
         id: image_string
-        uses: https://github.com/ASzc/change-string-case-action@v6
+        uses: https://github.com/ASzc/change-string-case-action@v8
         with:
           string: ${{ env.IMAGE_SLUG }}
       - name: Docker login
@@ -49,7 +49,7 @@ jobs:
     steps:
       - name: Lowercase Docker image name
         id: image_string
-        uses: https://github.com/ASzc/change-string-case-action@v6
+        uses: https://github.com/ASzc/change-string-case-action@v8
         with:
           string: ${{ env.IMAGE_SLUG }}
       - name: Publish release
