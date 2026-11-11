@@ -1,5 +1,5 @@
 # build backend
-FROM golang:1.24.10 AS go-builder
+FROM golang:1.27.4 AS go-builder
 WORKDIR /go/src/app
 COPY *.go *.mod *.sum .
 RUN go get -d -v ./...
